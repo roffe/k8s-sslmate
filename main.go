@@ -18,30 +18,65 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"log"
 
+	"github.com/kr/pretty"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+)
+
+var (
+	err error
 )
 
 func main() {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
+		log.Printf("InClusterConfig Failed: %s\n", err.Error())
+		log.Println("Trying local config\n")
+	}
+	//kubeconfig := flag.String("kubeconfig", "./config", "absolute path to the kubeconfig file")
+	//flag.Parse()
+	// uses the current context in kubeconfig
+
+	config, err = clientcmd.BuildConfigFromFlags("", "/Users/jk/.kube/config")
+	if err != nil {
 		panic(err.Error())
 	}
+
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err.Error())
 	}
-	for {
-		pods, err := clientset.Core().Pods("").List(v1.ListOptions{})
+	secret := &v1.Secret{}
+	secret.Namespace = "k8s-sslmate"
+	secret.Name = "k8s-test"
+	secret.Type = v1.SecretTypeTLS
+	secret.Data = make(map[string][]byte)
+	secret.Data[v1.TLSCertKey] = []byte("thecert123")
+	secret.Data[v1.TLSPrivateKeyKey] = []byte("theykey123")
+
+	getSecret, err := clientset.Core().Secrets("k8s-sslmate").Get("k8s-test")
+	if err != nil {
+		log.Printf("%s\n", err.Error())
+		create, err := clientset.Core().Secrets("k8s-sslmate").Create(secret)
 		if err != nil {
-			panic(err.Error())
+			log.Print(err.Error())
 		}
-		fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
-		time.Sleep(10 * time.Second)
+		//log.Printf("%+v", create)
+		fmt.Printf("%# v", pretty.Formatter(create))
+	} else {
+		//log.Printf("%+v", getSecret)
+		fmt.Printf("%# v", pretty.Formatter(getSecret))
+		update, err := clientset.Core().Secrets("k8s-sslmate").Update(secret)
+		if err != nil {
+			log.Print(err.Error())
+		}
+		//log.Printf("%+v", update)
+		fmt.Printf("%# v", pretty.Formatter(update))
 	}
 }

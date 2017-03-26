@@ -1,6 +1,6 @@
 FROM debian:jessie-slim
 
-RUN apt-get update && apt-get install -y wget curl
+RUN apt-get update && apt-get install -y wget curl vim.tiny
 
 RUN wget -P /etc/apt/sources.list.d https://sslmate.com/apt/jessie/sslmate.list
 RUN wget -P /etc/apt/trusted.gpg.d https://sslmate.com/apt/jessie/sslmate.gpg

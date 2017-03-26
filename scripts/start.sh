@@ -6,7 +6,6 @@ function shut_down() {
 
 }
 
-
 if [ -z "${SSLMATE_API_KEY}" ];	then
     echo "Could not get env SSLMATE_API_KEY"
     exit 1
@@ -25,7 +24,7 @@ while true; do
     # if sslmate download --all > /dev/null
     if sslmate download --all; then
 	    echo Downloaded new certs. Updating certs
-
+        /update_certs.sh
     fi
 
     sleep ${SSLMATE_CHECKTIME:-360}
