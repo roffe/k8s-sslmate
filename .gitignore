@@ -1,2 +1,4 @@
 packages
 ssl
+vendor
+*.json
