@@ -1,0 +1,30 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    name: k8s-sslmate
+  name: k8s-sslmate
+  namespace: kube-system
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: k8s-sslmate
+    spec:
+      containers:
+      - image: roffe/k8s-sslmate
+        name: k8s-sslmate
+        volumeMounts:
+        - mountPath: "/etc/sslmate/keys"
+          name: sslmate-private-keys
+        resources:
+          requests:
+            cpu: 100m
+          limits:
+            cpu: 1
+      volumes:
+      - name: sslmate-private-keys
+        secret:
+          secretName: k8s-sslmate-keys
