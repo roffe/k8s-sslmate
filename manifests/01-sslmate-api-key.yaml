@@ -5,4 +5,4 @@ metadata:
   namespace: k8s-sslmate
 type: Opaque
 data:
-  SSLMATE_API_KEY: <insert-api-key-here>
+  sslmate-api-key: base64_encoded_api_key 
