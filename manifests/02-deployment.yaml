@@ -5,7 +5,7 @@ metadata:
   labels:
     name: k8s-sslmate
   name: k8s-sslmate
-  namespace: kube-system
+  namespace: k8s-sslmate
 spec:
   replicas: 1
   template:
@@ -17,6 +17,12 @@ spec:
       - image: roffe/k8s-sslmate
         name: k8s-sslmate
         volumeMounts:
+        env:
+          - name: SSLMATE_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: sslmate-api-key
+                key: SSLMATE_API_KEY
         - mountPath: "/etc/sslmate/keys"
           name: sslmate-private-keys
         resources:
@@ -27,4 +33,4 @@ spec:
       volumes:
       - name: sslmate-private-keys
         secret:
-          secretName: k8s-sslmate-keys
+          secretName: tls-private-keys

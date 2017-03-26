@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sslmate-api-key
+type: Opaque
+data:
+  SSLMATE_API_KEY: <insert-api-key-here>

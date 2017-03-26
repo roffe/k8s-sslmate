@@ -1,19 +1,19 @@
 #!/bin/bash
 
 function shut_down() {
-    echo shutting down & self destructing ssl certificates
-    rm -rf /root/.sslmate
-    rm -rf /etc/sslmate
+    echo shutting down k8s-sslmate
     exit
 
 }
+
 
 if [ -z "${SSLMATE_API_KEY}" ];	then
     echo "Could not get env SSLMATE_API_KEY"
     
     exit 1
 else
-    echo "api_key ${SSLMATE_API_KEY}" > /root/.sslmate
+	DEC_KEY=$(echo -n ${SSLMATE_API_KEY} | base64 --decode)
+    echo "api_key ${DEC_KEY}" > /root/.sslmate
     echo "key_directory /etc/sslmate/keys" >> /root/.sslmate
     echo "cert_directory /etc/sslmate" >> /root/.sslmate
     echo "wildcard_filename star" >> /root/.sslmate
@@ -27,6 +27,7 @@ while true; do
     # if sslmate download --all > /dev/null
     if sslmate download --all; then
 	    echo Downloaded new certs. Updating certs
+
     fi
 
     sleep ${SSLMATE_CHECKTIME:-360}
