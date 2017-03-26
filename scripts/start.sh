@@ -9,11 +9,9 @@ function shut_down() {
 
 if [ -z "${SSLMATE_API_KEY}" ];	then
     echo "Could not get env SSLMATE_API_KEY"
-    
     exit 1
 else
-	DEC_KEY=$(echo -n ${SSLMATE_API_KEY} | base64 --decode)
-    echo "api_key ${DEC_KEY}" > /root/.sslmate
+    echo "api_key ${SSLMATE_API_KEY}" > /root/.sslmate
     echo "key_directory /etc/sslmate/keys" >> /root/.sslmate
     echo "cert_directory /etc/sslmate" >> /root/.sslmate
     echo "wildcard_filename star" >> /root/.sslmate
