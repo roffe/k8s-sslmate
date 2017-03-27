@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Secret
-metadata:
-  name: sslmate-api-key
-  namespace: k8s-sslmate
-type: Opaque
-data:
-  sslmate-api-key: base64_encoded_api_key 

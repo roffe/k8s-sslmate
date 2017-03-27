@@ -18,15 +18,5 @@ fi
 
 trap "shut_down" SIGKILL SIGTERM SIGHUP SIGINT EXIT
 
+/opt/bin/k8s-sslmate
 
-while true; do
-
-    # if sslmate download --all > /dev/null
-    if sslmate download --all; then
-	    echo Downloaded new certs. Updating certs
-        /update_certs.sh
-    fi
-
-    sleep ${SSLMATE_CHECKTIME:-360}
-
-done
