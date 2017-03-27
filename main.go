@@ -37,9 +37,9 @@ func deploySecret(clientset *kubernetes.Clientset, namespace_in string, secretOb
 		log.Printf("Secret %s/%s updated", namespace, secretObj.ObjectMeta.Name)
 	} else {
 		if createSecret(clientset, namespace, secretObj) {
-			log.Printf("Secret %s/%s created", namespace, secretObj.ObjectMeta.Name)
+			log.Printf("Secret \"%s/%s\" created", namespace, secretObj.ObjectMeta.Name)
 		} else {
-			log.Printf("Update & Create failed for %s/%s", namespace, secretObj.ObjectMeta.Name)
+			log.Printf("Update & Create failed for \"%s/%s\"", namespace, secretObj.ObjectMeta.Name)
 		}
 	}
 

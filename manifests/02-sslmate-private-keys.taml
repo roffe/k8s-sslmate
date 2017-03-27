@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Secret
-metadata:
-  name: sslmate-private-keys
-  namespace: k8s-sslmate
-type: Opaque
-data:
-  domain.tld.key: base64encoded

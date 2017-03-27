@@ -1,14 +1,52 @@
 # SSLmate to automatic sync certs with K8S cluster
 
+Reloads it's internal config map every 1 minute
+Checks for new SSLmate certificates to download at start & every 60 minutes
 
-dep init
-dep ensure k8s.io/client-go@^2.0.0
+At startup all certs are downloaded and pushed / created according to mappings in configmap
 
-curl -v --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" https://kubernetes/
-
+If configmap is updated & new privatekey is added. It will get distributed at the next check ( every 60 minutes )
 
 
-curl https://$KUBERNETES_PORT_443_TCP_ADDR/api/v1/namespaces/k8s-sslmate/secrets \
--s --cacert /var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
--H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
--XPOST -H"Content-Type: application/yaml" -d@<(update_certs.sh)
+## Building
+dep init 
+dep ensure k8s.io/client-go@^2.0.0  
+
+## Local testing
+When started ina  local docker the K8S clientcmd package is used and will need a config file containing certs / token
+```
+docker run --rm -it --name k8s-sslmate -e SSLMATE_API_KEY="YourSSLmateAPIkey" -v /path/to/.kube:/opt/.kube roffe/k8s-sslmate
+```
+
+## Deployment to K8S
+There are deployment manifests included in this repo:
+
+### Preparations
+**Attention!: k8s-sslmate assumes that the lowercase word 'star' is used for wildcard certificates!**
+
+To create a secret containing your privatekeys used with SSLmate issue the following after creating the namespace
+
+```
+kubectl create secret generic sslmate-private-keys --from-file=domain.tld.key --from-file=star.somedomain.tld.key --namespace k8s-sslmate
+```
+
+#### 00-namespace.yaml
+Creates the namespace **k8s-sslmate** where the application will be running
+```
+kubectl create -f manifests/00-namespace.yaml
+````
+
+#### 01-configmap.yaml
+Edit to suit your needs. The mapping is very simple where the domain name is the key and a comma separated list after is the namespaces to deploy the CERT to.
+```
+kubectl create -f manifests/01-configmap.yaml
+```
+
+#### 02-sslmate-api-key
+Base64 encode your SSLmate API key and insert into the template. then create with  
+```
+kubectl create -f manifests/02-sslmate-api-key.yaml
+```
+
+#### 03-deployment.yaml
+The actuall deployment. It will reference your sslmate-api-key secret and use as a environment variable
