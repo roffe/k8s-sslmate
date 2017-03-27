@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k8s-sslmate-config
+  namespace: k8s-sslmate
+data:
+  star.domain.tld: namespace1,namespace2
+  another.tld: namespace3,namespace4
