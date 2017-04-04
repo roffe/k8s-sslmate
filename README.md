@@ -1,14 +1,15 @@
 # k8s-sslmate
 Your buddy to keep sslmate certificates synchronized with your Kubernetes cluster
 
-*Reloads it's internal config map every 1 minute
-*Checks for new SSLmate certificates to download at start & every 60 minutes
+*Reloads it's internal config map every 1 minute  
+*Checks for new SSLmate certificates to download at start & every 60 minutes  
 
 At startup all certs are downloaded and pushed / created according to mappings in configmap
 
 If configmap is updated changes will be propagated within 1 minute
 
-If new SSL certs are added to the privatekey config map they will be added at the next run ( every 60 minute ) if it's added to the configmap
+If new SSL certs are added to the privatekey configMap they will be added at the next run ( every 60 minute )
+This can be speedup by removing the pod and thereby forcing a complete propagation of all certs.
 
 
 ## Building
@@ -25,7 +26,7 @@ docker run --rm -it --name k8s-sslmate -e SSLMATE_API_KEY="YourSSLmateAPIkey" -v
 There are deployment manifests included in this repo:
 
 ### Preparations
-**Attention!: k8s-sslmate assumes that the lowercase word 'star' is used for wildcard certificates!**
+**Attention!: k8s-sslmate assumes that the lowercase word 'star' is used for wildcard certificates and will configure SSLmate to act accordingly!**
 
 To create a secret containing your privatekeys used with SSLmate issue the following after creating the namespace
 
@@ -40,7 +41,7 @@ kubectl create -f manifests/00-namespace.yaml
 ````
 
 #### 01-configmap.yaml
-Edit to suit your needs. The mapping is very simple where the domain name is the key and a comma separated list after is the namespaces to deploy the CERT to.
+Edit to suit your needs. The mapping is very simple where the domain name is the key and a comma separated list after is the namespaces to deploy the CERTs to.
 ```
 kubectl create -f manifests/01-configmap.yaml
 ```
