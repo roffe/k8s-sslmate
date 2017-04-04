@@ -6,6 +6,7 @@ import (
 	"log"
 	"os/exec"
 	"path"
+	"reflect"
 	"strings"
 	"time"
 
@@ -22,24 +23,36 @@ var (
 	runningConfig *v1.ConfigMap
 )
 
-func getConfigmap(clientset *kubernetes.Clientset) {
+func getConfigmap(clientset *kubernetes.Clientset, firstrun bool) {
+	oldConfigMap := runningConfig
 	cm, err := clientset.Core().ConfigMaps("k8s-sslmate").Get("k8s-sslmate-config")
 	if err != nil {
-		log.Panic(err)
+		log.Fatalf("FATAL: Can't get configmap!, %s", err.Error())
 	}
-	//fmt.Printf("%# v\n", pretty.Formatter(cm.Data))
 	runningConfig = cm
+
+	if firstrun == false {
+		// Check if the last known configmap is the same
+		if reflect.DeepEqual(oldConfigMap, cm) == false {
+			log.Print("INFO: Configmap updated, propagating changes")
+			for k := range cm.Data {
+				if reflect.DeepEqual(oldConfigMap.Data[k], cm.Data[k]) == false {
+					updateCert(clientset, k)
+				}
+			}
+		} //End check if configmap the same
+	}
 }
 
 func deploySecret(clientset *kubernetes.Clientset, namespace_in string, secretObj *v1.Secret) {
 	namespace := strings.TrimSpace(namespace_in)
 	if updateSecret(clientset, namespace, secretObj) {
-		log.Printf("Secret %s/%s updated", namespace, secretObj.ObjectMeta.Name)
+		log.Printf("INFO: Secret \"%s/%s\" updated", namespace, secretObj.ObjectMeta.Name)
 	} else {
 		if createSecret(clientset, namespace, secretObj) {
-			log.Printf("Secret \"%s/%s\" created", namespace, secretObj.ObjectMeta.Name)
+			log.Printf("INFO: Secret \"%s/%s\" created", namespace, secretObj.ObjectMeta.Name)
 		} else {
-			log.Printf("Update & Create failed for \"%s/%s\"", namespace, secretObj.ObjectMeta.Name)
+			log.Printf("ERROR: Update & Create failed for \"%s/%s\"", namespace, secretObj.ObjectMeta.Name)
 		}
 	}
 
@@ -50,7 +63,7 @@ func createSecret(clientset *kubernetes.Clientset, namespace string, secretObj *
 	if err == nil {
 		return true
 	} else {
-		log.Printf("WARN Creating: %s", err)
+		log.Printf("ERROR Creating: \"%s/%s\": %s", namespace, secretObj.Name, err)
 		return false
 	}
 }
@@ -60,26 +73,29 @@ func updateSecret(clientset *kubernetes.Clientset, namespace string, secretObj *
 	if err == nil {
 		return true
 	} else {
-		log.Printf("ERROR Updating: %s", err)
+		log.Printf("ERROR Updating \"%s/%s\": %s", namespace, secretObj.Name, err)
 		return false
 	}
 }
 
-func updateCert(clientset *kubernetes.Clientset, tlscrt string) bool {
-	domainname := path.Base(strings.TrimSuffix(tlscrt, ".chained.crt"))
-	tlscrt_f, err := ioutil.ReadFile(tlscrt)
+func updateCert(clientset *kubernetes.Clientset, domainname string) bool {
+
+	tlscrt_f, err := ioutil.ReadFile(fmt.Sprintf("/etc/sslmate/%s.chained.crt", domainname))
 	if err != nil {
-		log.Panic(err)
+		log.Printf("ERROR: %s", err)
+		return false
 	}
+
 	tlskey_f, err := ioutil.ReadFile(fmt.Sprintf("/etc/sslmate/keys/%s.key", domainname))
 	if err != nil {
-		log.Panic(err)
+		log.Printf("ERROR: %s", err)
+		return false
 	}
 
 	// fmt.Printf("%# v", pretty.Formatter(secret))
 
 	if val, ok := runningConfig.Data[domainname]; ok {
-		log.Printf("%s found in ConfigMap with namespaces [\"%s\"]\n", domainname, val)
+		log.Printf("INFO: \"%s\" found in ConfigMap with namespace(s) [\"%s\"]\n", domainname, val)
 		namespaces := strings.Split(val, ",")
 		for _, namespace := range namespaces {
 			secret := &v1.Secret{}
@@ -103,14 +119,14 @@ func run_SSLmate() bool {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Waiting for SSLmate to finish...")
+	log.Printf("INFO: Waiting for SSLmate to finish...")
 	err = cmd.Wait()
 	if err != nil {
 		//fmt.Printf("%# v\n", pretty.Formatter(err))
-		log.Print("SSLmate had no new certs to download")
+		log.Print("INFO: SSLmate had no new certs to download")
 	}
 	if err == nil {
-		log.Print("SSLmate has downloaded new certs")
+		log.Print("INFO: SSLmate has downloaded new certs")
 	}
 	return true
 }
@@ -124,11 +140,11 @@ func main() {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		log.Printf("InClusterConfig Failed: %s\n", err.Error())
+		log.Printf("WARN: InClusterConfig Failed: %s\n", err.Error())
 	}
 
 	if config == nil {
-		log.Println("Trying local config\n")
+		log.Println("INFO: Trying local config\n")
 		config, err = clientcmd.BuildConfigFromFlags("", "/opt/.kube/config")
 		if err != nil {
 			panic(err.Error())
@@ -138,14 +154,14 @@ func main() {
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Fatalf("Could not create new client %s", err.Error())
+		log.Fatalf("FATAL: Could not create new client %s", err.Error())
 	}
 
-	getConfigmap(clientset)
+	getConfigmap(clientset, true)
 
 	c := cron.New()
 	c.AddFunc("@every 60m", func() { run_SSLmate() })
-	c.AddFunc("@every 1m", func() { getConfigmap(clientset) })
+	c.AddFunc("@every 1m", func() { getConfigmap(clientset, false) })
 	c.Start()
 	go delayedStart()
 	watcher, err := fsnotify.NewWatcher()
@@ -163,12 +179,12 @@ func main() {
 				// log.Println("event:", event)
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					if strings.HasSuffix(event.Name, ".chained.crt") {
-						log.Println("modified file:", event.Name)
-						updateCert(clientset, event.Name)
+						//log.Println("modified file:", event.Name)
+						updateCert(clientset, path.Base(strings.TrimSuffix(event.Name, ".chained.crt")))
 					}
 				}
 			case err := <-watcher.Errors:
-				log.Println("error:", err)
+				log.Println("ERROR: ", err)
 			}
 		}
 	}()

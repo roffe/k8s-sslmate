@@ -1,11 +1,14 @@
-# SSLmate to automatic sync certs with K8S cluster
+# k8s-sslmate
+Your buddy to keep sslmate certificates synchronized with your Kubernetes cluster
 
-Reloads it's internal config map every 1 minute
-Checks for new SSLmate certificates to download at start & every 60 minutes
+*Reloads it's internal config map every 1 minute
+*Checks for new SSLmate certificates to download at start & every 60 minutes
 
 At startup all certs are downloaded and pushed / created according to mappings in configmap
 
-If configmap is updated & new privatekey is added. It will get distributed at the next check ( every 60 minutes )
+If configmap is updated changes will be propagated within 1 minute
+
+If new SSL certs are added to the privatekey config map they will be added at the next run ( every 60 minute ) if it's added to the configmap
 
 
 ## Building
@@ -13,7 +16,7 @@ dep init
 dep ensure k8s.io/client-go@^2.0.0  
 
 ## Local testing
-When started ina  local docker the K8S clientcmd package is used and will need a config file containing certs / token
+When started in a local docker the K8S clientcmd package is used and will need a config file containing certs / token to talk to a K8S cluster
 ```
 docker run --rm -it --name k8s-sslmate -e SSLMATE_API_KEY="YourSSLmateAPIkey" -v /path/to/.kube:/opt/.kube roffe/k8s-sslmate
 ```
