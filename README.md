@@ -54,3 +54,14 @@ kubectl create -f manifests/02-sslmate-api-key.yaml
 
 #### 03-deployment.yaml
 The actuall deployment. It will reference your sslmate-api-key secret and use as a environment variable
+
+## k8s-sslmate CLI reference
+
+### --certdir
+Set the SSLmate cert directory, default /etc/sslmate/keys/
+
+### --keydir
+Set the SSLmate key directory, default /etc/sslmate/keys/
+
+### --config
+Set the path to your kubernetes config, default /opt/.kube/config

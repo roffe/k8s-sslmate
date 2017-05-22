@@ -1,4 +1,5 @@
 #!/bin/sh
+mkdir bin
 go get
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./bin/k8s-sslmate .
 cd bin
