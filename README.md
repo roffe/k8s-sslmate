@@ -1,3 +1,5 @@
+**The project is halted at the moment and has a severe bugg that makes it more or less unusable, please see open issues if you wish to help**
+
 # k8s-sslmate
 Your buddy to keep sslmate certificates synchronized with your Kubernetes cluster
 
